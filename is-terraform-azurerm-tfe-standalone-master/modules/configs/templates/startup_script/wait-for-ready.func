@@ -1,0 +1,13 @@
+function wait-for-ready {
+  local private_ip=$1
+  # OS: Agnostic
+  # Description: Poll for TFE to become healthy via the local instance private IP address
+
+  echo "[$(date +"%FT%T")]  Sleeping for 5 minutes while TFE starts..."
+  sleep 300
+
+  echo "[$(date +"%FT%T")]  Start Polling for TFE to become healthy"
+  while ! curl -ksfS --connect-timeout 5 https://$private_ip/_health_check; do
+    sleep 5
+  done
+}

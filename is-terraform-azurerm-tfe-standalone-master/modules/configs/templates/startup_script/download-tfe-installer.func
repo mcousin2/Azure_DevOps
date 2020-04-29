@@ -1,0 +1,10 @@
+function download-tfe-installer {
+  # OS: Agnostic
+  # Description: Download the install.sh file from the configured URL
+
+  echo "[$(date +"%FT%T")]  Downloading install.sh from ${tfe_install_url}"
+
+  mkdir -p /etc/tfe
+  curl -o /etc/tfe/install.sh ${tfe_install_url}
+  chmod +x /etc/tfe/install.sh
+}

@@ -1,0 +1,58 @@
+%{ if distribution == "ubuntu" ~}
+function install-software {
+  # OS: Ubuntu
+  # Description: Install required software to the instance
+  # Software: curl, jq, docker, azure cli
+
+  echo "[$(date +"%FT%T")]  Adding az cli packages"
+  curl -sL https://packages.microsoft.com/keys/microsoft.asc | \
+    gpg --dearmor | \
+    sudo tee /etc/apt/trusted.gpg.d/microsoft.asc.gpg > /dev/null
+  AZ_REPO=$(lsb_release -cs)
+  echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | \
+    sudo tee /etc/apt/sources.list.d/azure-cli.list
+  
+  echo "[$(date +"%FT%T")]  Updating apt-get and installing"
+  apt-get -y update
+  apt-get install -y jq docker.io azure-cli
+  echo "[$(date +"%FT%T")]  Updating apt-get and installing - Complete"
+}
+%{ endif ~}
+%{ if distribution == "rhel" ~}
+function install-software {
+  # OS: Rhel
+  # Description: Install required software to the instance
+  # Software: curl, jq, docker, azure cli
+
+  echo "[$(date +"%FT%T")]  Installing and Configuring Docker"
+  yum-config-manager --enable rhel-7-server-extras-rpms #not explicitly needed
+  yum install -y docker
+  systemctl enable docker
+  systemctl start docker
+
+  echo "[$(date +"%FT%T")]  Disable SELinux (temporary)"
+  setenforce 0
+  echo "[$(date +"%FT%T")]  Add docker0 to firewalld"
+  firewall-cmd --permanent --zone=trusted --change-interface=docker0
+  firewall-cmd --reload
+  echo "[$(date +"%FT%T")]  Enable SELinux"
+  setenforce 1
+  echo "[$(date +"%FT%T")]  Installing and Configuring Docker - Complete"
+  
+  echo "[$(date +"%FT%T")]  Installing jq"
+  curl -L https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 > jq
+  chmod +x jq
+  sudo mv jq /usr/bin
+
+  echo "[$(date +"%FT%T")]  Installing Azure CLI"
+  rpm --import https://packages.microsoft.com/keys/microsoft.asc
+  sh -c 'echo -e "[azure-cli]
+name=Azure CLI
+baseurl=https://packages.microsoft.com/yumrepos/azure-cli
+enabled=1
+gpgcheck=1
+gpgkey=https://packages.microsoft.com/keys/microsoft.asc" > /etc/yum.repos.d/azure-cli.repo'
+  yum install -y azure-cli
+  echo "[$(date +"%FT%T")]  Installing Azure CLI - Complete"
+}
+%{ endif ~}

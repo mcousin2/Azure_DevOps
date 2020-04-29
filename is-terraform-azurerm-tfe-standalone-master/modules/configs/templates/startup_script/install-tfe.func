@@ -1,0 +1,20 @@
+function install-tfe {
+  local private_ip=$1
+  # OS: Agnostic
+  # Description: Install TFE
+  # Software: curl, jq, docker, azure cli
+  
+  echo "[$(date +"%FT%T")]  Installing Terraform Enterprise"
+  cd /etc/tfe
+  sudo ./install.sh \
+    no-proxy \
+    no-docker \
+    bypass-firewalld-warning \
+    ignore-preflights \
+%{ if airgapped ~}
+    airgap \
+%{ endif ~}
+    private-address=$private_ip \
+    public-address=$private_ip
+  echo "[$(date +"%FT%T")]  Installing Terraform Enterprise - Complete"
+}

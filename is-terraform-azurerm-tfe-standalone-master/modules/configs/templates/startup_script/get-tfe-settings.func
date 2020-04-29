@@ -1,0 +1,46 @@
+%{ if source == "local" ~}
+function get-tfe-settings {
+  # OS: Agnostic
+  # Description: Writing base64 encoded cloud init secrets to disk
+  # Settings: replicated.conf, replicated-tfe.conf, replicated.rli, tls.crt, tls.key
+
+  echo "[$(date +"%FT%T")]  Writing settings to disk"
+
+  echo ${license_b64} | base64 -d > /etc/replicated.rli
+  echo ${replicated_conf_b64} | base64 -d > /etc/replicated.conf
+  echo ${replicated_tfe_conf_b64} | base64 -d > /etc/replicated-tfe.conf
+
+  mkdir -p /etc/tfe/
+  echo ${tls_cert_b64} | base64 -d > /etc/tfe/tls.crt
+  echo ${tls_key_b64} | base64 -d > /etc/tfe/tls.key
+
+  echo "[$(date +"%FT%T")]  Writing settings to disk - Complete"
+}
+%{ endif ~}
+%{ if source == "azkeyvault" ~}
+function get-tfe-settings {
+  # OS: Agnostic
+  # Description: Reads secrets from an MSI connected Azure Key Vault and writes them to disk
+  # Secrets: [replicated-config, replicated-tfe-config, replicated-license, tls-cert, tlse-key]
+  
+  echo "[$(date +"%FT%T")]  Logging into the az cli using MSI"
+  az login --identity
+  # This assumes that the instance only has access to a single AKV
+  keyvault_name=$(az keyvault list -o tsv --query '[].name')
+  
+  if az keyvault show -n $keyvault_name; then
+    echo "[$(date +"%FT%T")]  Reading Secrets from Azure KeyVault $keyvault_name"
+
+    az keyvault secret show --vault-name $keyvault_name -n replicated-config --query value -o tsv > /etc/replicated.conf
+    az keyvault secret show --vault-name $keyvault_name -n replicated-tfe-config --query value -o tsv > /etc/replicated-tfe.conf
+    az keyvault secret show --vault-name $keyvault_name -n replicated-license --query value -o tsv | base64 -d > /etc/replicated.rli
+    mkdir -p /etc/tfe/
+    az keyvault secret show --vault-name $keyvault_name -n tls-cert --query value -o tsv > /etc/tfe/tls.crt
+    az keyvault secret show --vault-name $keyvault_name -n tls-key --query value -o tsv > /etc/tfe/tls.key
+
+    echo "[$(date +"%FT%T")]  Done Reading Secrets from Azure KeyVault"
+  else
+    echo "[$(date +"%FT%T")]  Ignoring Azure KeyVault $keyvault_name [Access not granted]"
+  fi
+}
+%{ endif ~}

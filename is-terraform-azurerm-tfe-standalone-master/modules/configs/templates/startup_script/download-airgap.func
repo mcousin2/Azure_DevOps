@@ -1,0 +1,14 @@
+function download-airgap {
+  # OS: Agnostic
+  # Description: Download an airgap file from the configured URL
+
+  mkdir -p /etc/tfe
+  echo "[$(date +"%FT%T")]  Downloading replicated tar from storage"
+  curl -Lo /etc/tfe/replicated.tar.gz ${tfe_replicated_url}
+  tar xzf /etc/tfe/replicated.tar.gz -C /etc/tfe
+
+  echo "[$(date +"%FT%T")]  Downloading airgap from storage"
+
+  curl -L "${tfe_airgap_url}" > /etc/tfe/latest.airgap
+  echo "[$(date +"%FT%T")]  Downloading - Complete"
+}
